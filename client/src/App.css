@@ -61,3 +61,26 @@ th { background: #f8fafc; font-size: 0.85rem; }
 .badge.ready { background: #dcfce7; color: #166534; }
 .badge.delivered { background: #f1f5f9; color: #475569; }
 .badge.cancelled { background: #fee2e2; color: #991b1b; }
+
+
+.right { text-align: right; }
+
+.btn.secondary { background: #475569; }
+
+.icon-btn {
+  background: none; border: 1px solid #fca5a5; color: #dc2626;
+  border-radius: 6px; padding: 2px 8px; cursor: pointer;
+}
+.icon-btn:disabled { opacity: 0.5; cursor: default; }
+
+.part-form {
+  display: grid;
+  grid-template-columns: 2fr 80px 1fr auto;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+@media (max-width: 700px) {
+  .part-form { grid-template-columns: 1fr 1fr; }
+}
+
+.bill { max-width: 360px; margin-left: auto; }
