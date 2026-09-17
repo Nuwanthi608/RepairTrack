@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../config/db");
+const { notifyCustomer } = require("../services/smsService");
 
 const STATUSES = [
   "received", "diagnosing", "waiting_for_parts",
@@ -83,6 +84,10 @@ exports.createJob = async (req, res) => {
     );
 
     await conn.commit();
+
+    // SMS එක background එකේ යවනවා (owner ට බලන් ඉන්න ඕන නැහැ)
+    notifyCustomer(result.insertId).catch((e) => console.error("SMS error:", e.message));
+
     res.status(201).json({ id: result.insertId, job_number: jobNumber });
   } catch (err) {
     await conn.rollback();
@@ -145,6 +150,12 @@ exports.getJobById = async (req, res) => {
        ORDER BY changed_at, id`,
       [id]
     );
+    const [sms] = await db.query(
+      `SELECT message, send_status, sent_at
+       FROM sms_logs WHERE job_id = ?
+       ORDER BY sent_at DESC, id DESC`,
+      [id]
+    );
 
     const job = jobs[0];
     // MySQL DECIMAL අගයන් string විදියට එන නිසා Number() කරනවා
@@ -157,6 +168,7 @@ exports.getJobById = async (req, res) => {
       ...job,
       parts,
       history,
+      sms,
       totals: {
         parts: round2(partsTotal),
         labour: round2(labour),
@@ -183,17 +195,22 @@ exports.updateStatus = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    const [result] = await conn.query(
+    const [current] = await conn.query(
+      "SELECT status FROM jobs WHERE id = ? FOR UPDATE", [id]
+    );
+    if (!current.length) {
+      await conn.rollback();
+      return res.status(404).json({ message: "Job not found" });
+    }
+    const statusChanged = current[0].status !== status;
+
+    await conn.query(
       `UPDATE jobs
        SET status = ?,
            delivered_at = IF(? = 'delivered', NOW(), delivered_at)
        WHERE id = ?`,
       [status, status, id]
     );
-    if (!result.affectedRows) {
-      await conn.rollback();
-      return res.status(404).json({ message: "Job not found" });
-    }
 
     await conn.query(
       "INSERT INTO status_history (job_id, status, note) VALUES (?, ?, ?)",
@@ -201,7 +218,13 @@ exports.updateStatus = async (req, res) => {
     );
 
     await conn.commit();
-    res.json({ message: "Status updated", status });
+
+    // Status එක ඇත්තටම වෙනස් වුණොත් විතරක් SMS යවනවා
+    if (statusChanged) {
+      notifyCustomer(id).catch((e) => console.error("SMS error:", e.message));
+    }
+
+    res.json({ message: "Status updated", status, sms: statusChanged });
   } catch (err) {
     await conn.rollback();
     res.status(500).json({ message: err.message });

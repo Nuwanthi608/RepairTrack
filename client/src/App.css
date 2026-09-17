@@ -124,3 +124,7 @@ th { background: #f8fafc; font-size: 0.85rem; }
 .cancelled-box { background: #fee2e2; color: #991b1b; margin-top: 16px; }
 
 .track-result .bill { max-width: none; }
+
+.badge.sms-sent { background: #dcfce7; color: #166534; }
+.badge.sms-failed { background: #fee2e2; color: #991b1b; }
+.badge.sms-simulated { background: #f1f5f9; color: #475569; }

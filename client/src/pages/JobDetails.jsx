@@ -242,6 +242,22 @@ export default function JobDetails() {
           </tbody>
         </table>
       </div>
+      <div className="card">
+        <h3>SMS sent</h3>
+        {job.sms.length === 0 ? (
+          <p className="muted">No SMS sent yet.</p>
+        ) : (
+          <ul className="timeline">
+            {job.sms.map((s, i) => (
+              <li key={i}>
+                <span className={`badge sms-${s.send_status}`}>{s.send_status}</span>
+                <span className="muted"> {formatDate(s.sent_at)}</span>
+                <div>{s.message}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="card">
         <h3>History</h3>
