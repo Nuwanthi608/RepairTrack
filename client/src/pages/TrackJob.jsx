@@ -46,7 +46,7 @@ export default function TrackJob() {
     setError("");
     setResult(null);
     try {
-      const data = await api("/public/track", { method: "POST", body: form });
+           const data = await api("/public/track", { method: "POST", body: form, auth: false });
       setResult(data);
     } catch (err) {
       setError(err.message);
