@@ -17,7 +17,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 app.use("/api/jobs", require("./routes/jobRoutes"));
-
+app.use("/api/public", require("./routes/publicRoutes"));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, (err) => {
   if (err) {
