@@ -10,7 +10,13 @@ if (!process.env.JWT_SECRET) {
 }
 
 const app = express();
-app.use(cors());
+
+// මේ sites වලට විතරයි API එකට කතා කරන්න පුළුවන්
+const allowed = (process.env.CORS_ORIGINS || "http://localhost:5173,http://localhost:5174")
+  .split(",")
+  .map((s) => s.trim());
+
+app.use(cors({ origin: allowed }));
 app.use(express.json());
 
 app.get("/api/health", async (req, res) => {
