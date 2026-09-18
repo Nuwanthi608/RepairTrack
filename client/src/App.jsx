@@ -31,7 +31,7 @@ function OwnerLayout() {
             Customer page
           </Link>
           <Link to="/jobs/new" className="btn">+ New Job</Link>
-          <span className="nav-user">{user?.name}</span>
+                  <span className="nav-user">{user?.role === "owner" ? "Owner" : "Technician"}</span>
           <button className="btn secondary" onClick={logout}>Logout</button>
         </nav>
       </header>

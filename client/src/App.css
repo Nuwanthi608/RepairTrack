@@ -405,3 +405,6 @@ th { font-size: 0.74rem; color: var(--steel); font-weight: 600; }
 @media (max-width: 700px) {
   .home-hero { min-height: 340px; padding: 40px 22px; }
 }
+
+.nav-user { display: flex; flex-direction: column; line-height: 1.2; }
+.nav-role { color: var(--amber); font-size: 0.72rem; }
