@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { api, STATUS_LABELS, formatRs, formatDate } from "../api";
 
 const STEPS = [
@@ -63,6 +63,12 @@ export default function TrackJob() {
         <h1>🔧 RepairTrack</h1>
         <p>Check your device repair status</p>
       </header>
+
+            {localStorage.getItem("rt_token") && (
+        <p className="back-link">
+          <Link to="/">← Back to dashboard</Link>
+        </p>
+      )}
 
       <form className="card form track-form" onSubmit={submit}>
         <label>Job number

@@ -4,6 +4,7 @@ import { api, STATUS_LABELS, formatRs, formatDate } from "../api";
 
 const LOCKED = ["delivered", "cancelled"];
 const emptyPart = { part_name: "", quantity: 1, unit_cost: "" };
+const PUBLIC_URL = window.location.origin;
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -97,7 +98,13 @@ export default function JobDetails() {
 
   return (
     <div>
-      <Link to="/">← Back to jobs</Link>
+      <div className="page-actions">
+        <Link to="/">← Back to jobs</Link>
+        <button className="btn secondary" onClick={() => window.print()}>
+          🖨 Print receipt
+        </button>
+      </div>
+
       <div className="title-row">
         <h1>{job.job_number}</h1>
         <span className={`badge ${job.status}`}>{STATUS_LABELS[job.status]}</span>
@@ -242,6 +249,7 @@ export default function JobDetails() {
           </tbody>
         </table>
       </div>
+
       <div className="card">
         <h3>SMS sent</h3>
         {job.sms.length === 0 ? (
@@ -270,6 +278,31 @@ export default function JobDetails() {
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* Print කරද්දී විතරක් පේනවා */}
+      <div className="receipt">
+        <h2>RepairTrack — Job Receipt</h2>
+        <p className="receipt-jobno">{job.job_number}</p>
+        <table className="receipt-table">
+          <tbody>
+            <tr><td>Customer</td><td>{job.customer_name} ({job.phone})</td></tr>
+            <tr><td>Device</td><td>{job.device_type} {[job.brand, job.model].filter(Boolean).join(" ")}</td></tr>
+            <tr><td>Serial / IMEI</td><td>{job.serial_imei || "-"}</td></tr>
+            <tr><td>Fault</td><td>{job.fault_description}</td></tr>
+            <tr><td>Accessories</td><td>{job.accessories || "-"}</td></tr>
+            <tr><td>Received</td><td>{formatDate(job.created_at)}</td></tr>
+            <tr><td>Expected</td><td>{job.expected_date ? new Date(job.expected_date).toLocaleDateString("en-LK") : "-"}</td></tr>
+            <tr><td>Total</td><td>{formatRs(job.totals.total)}</td></tr>
+            <tr><td>Advance paid</td><td>{formatRs(job.totals.advance_paid)}</td></tr>
+            <tr><td><b>Balance</b></td><td><b>{formatRs(job.totals.balance)}</b></td></tr>
+          </tbody>
+        </table>
+        <p className="receipt-foot">
+          Check your repair status online:<br />
+          {PUBLIC_URL}/track/{job.job_number}<br />
+          (Job number + last 4 digits of your phone)
+        </p>
       </div>
     </div>
   );

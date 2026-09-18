@@ -140,3 +140,42 @@ th { background: #f8fafc; font-size: 0.85rem; }
 .login-card h1 { margin: 0; text-align: center; }
 .login-card > .muted { text-align: center; margin: 0 0 8px; }
 .login-card .btn { align-self: stretch; }
+
+.status-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.status-card {
+  background: #fff; border: 2px solid transparent; border-radius: 8px;
+  padding: 12px 8px; cursor: pointer; text-align: center;
+  display: flex; flex-direction: column; gap: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); font: inherit;
+}
+.status-card b { font-size: 1.5rem; }
+.status-card span { font-size: 0.8rem; color: #64748b; }
+.status-card.active { border-color: #2563eb; }
+
+.page-actions {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Receipt එක screen එකේ පේන්නේ නැහැ, print කරද්දී විතරයි */
+.receipt { display: none; }
+
+@media print {
+  .topbar, .page-actions, .toolbar, .status-cards,
+  .card, .badge { display: none !important; }
+  .receipt { display: block; }
+  .container { padding: 0; }
+  body { background: #fff; }
+  .receipt-jobno { font-size: 1.6rem; font-weight: 700; letter-spacing: 1px; }
+  .receipt-table { width: 100%; margin: 12px 0; }
+  .receipt-table td { padding: 4px 0; vertical-align: top; }
+  .receipt-table td:first-child { width: 140px; color: #444; }
+  .receipt-foot { margin-top: 20px; font-size: 0.9rem; border-top: 1px dashed #999; padding-top: 10px; }
+}
+
+.back-link { text-align: center; margin: 0 0 12px; font-size: 0.9rem; }

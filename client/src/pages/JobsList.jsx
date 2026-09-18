@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, STATUS_LABELS, formatDate } from "../api";
 
+// Dashboard එකේ උඩ පෙන්නන tabs (delivered/cancelled වලට tab එකක් නැහැ)
+const TABS = ["received", "diagnosing", "waiting_for_parts", "repairing", "ready"];
+
 export default function JobsList() {
   const [jobs, setJobs] = useState([]);
   const [status, setStatus] = useState("");
@@ -10,24 +13,57 @@ export default function JobsList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    api(status ? `/jobs?status=${status}` : "/jobs")
+    api("/jobs")
       .then((data) => { setJobs(data); setError(""); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [status]);
+  }, []);
+
+  const counts = jobs.reduce((acc, j) => {
+    acc[j.status] = (acc[j.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  // කඩේ දැන් අතේ තියෙන උපකරණ ගණන
+  const inShop = TABS.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   const q = search.trim().toLowerCase();
-  const filtered = jobs.filter((j) =>
-    !q ||
-    j.job_number.toLowerCase().includes(q) ||
-    j.customer_name.toLowerCase().includes(q) ||
-    j.phone.includes(q)
-  );
+  const filtered = jobs.filter((j) => {
+    if (status && j.status !== status) return false;
+    if (!q) return true;
+    return (
+      j.job_number.toLowerCase().includes(q) ||
+      j.customer_name.toLowerCase().includes(q) ||
+      j.phone.includes(q)
+    );
+  });
 
   return (
     <div>
-      <h1>Jobs</h1>
+      <div className="title-row">
+        <h1>Jobs</h1>
+        <span className="muted">{inShop} device{inShop === 1 ? "" : "s"} in shop</span>
+      </div>
+
+      <div className="status-cards">
+        <button
+          className={`status-card ${status === "" ? "active" : ""}`}
+          onClick={() => setStatus("")}
+        >
+          <b>{jobs.length}</b>
+          <span>All</span>
+        </button>
+        {TABS.map((s) => (
+          <button
+            key={s}
+            className={`status-card ${status === s ? "active" : ""}`}
+            onClick={() => setStatus(status === s ? "" : s)}
+          >
+            <b>{counts[s] || 0}</b>
+            <span>{STATUS_LABELS[s]}</span>
+          </button>
+        ))}
+      </div>
 
       <div className="toolbar">
         <input
