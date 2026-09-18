@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { api, saveAuth, getToken } from "../api";
+import Footer from "../components/Footer";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -31,34 +32,48 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <form className="card form login-card" onSubmit={submit}>
-        <h1>🔧 RepairTrack</h1>
-        <p className="muted">Shop owner login</p>
+      <div className="login-hero">
+        <div className="login-card">
+          <p className="eyebrow">Smartphone &amp; laptop</p>
+          <h1>RepairTrack</h1>
+          <p className="brand-sub">Job tracking</p>
+          <p className="tagline">
+            Every device gets a job number, so nobody has to ask
+            &ldquo;is mine ready yet?&rdquo; over the phone.
+          </p>
 
-        <label>Email
-          <input
-            type="email"
-            autoComplete="username"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
-          />
-        </label>
-        <label>Password
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
-        </label>
+          <form className="form login-form" onSubmit={submit}>
+            <label>Email
+              <input
+                type="email"
+                autoComplete="username"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </label>
+            <label>Password
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+            </label>
 
-        {error && <p className="error">{error}</p>}
-        <button className="btn" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
-        </button>
-      </form>
+            {error && <p className="error">{error}</p>}
+            <button className="btn" disabled={loading}>
+              {loading ? "Logging in…" : "Log in"}
+            </button>
+          </form>
+
+                    <p className="login-alt">
+            Are you a customer? <Link to="/welcome">See how tracking works</Link>
+          </p>
+        </div>
+      </div>
+      <Footer />
     </div>
   );
 }

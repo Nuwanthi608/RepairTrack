@@ -4,7 +4,9 @@ import NewJob from "./pages/NewJob";
 import JobDetails from "./pages/JobDetails";
 import TrackJob from "./pages/TrackJob";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import { getToken, getUser, clearAuth } from "./api";
+import Footer from "./components/Footer";
 import "./App.css";
 
 function OwnerLayout() {
@@ -44,6 +46,7 @@ export default function App() {
   return (
     <Routes>
       {/* Login නැතුව */}
+            <Route path="/welcome" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/track/:jobNumber?" element={<TrackJob />} />
 

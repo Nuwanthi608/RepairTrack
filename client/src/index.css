@@ -1,22 +1,22 @@
 :root {
-  --ink: #11202b;
-  --ink-soft: #1c3040;
-  --steel: #64778a;
-  --line: #dfe4ea;
-  --bg: #eef1f4;
+  --ink: #0b2c55;
+  --ink-soft: #16437a;
+  --steel: #5f7b99;
+  --line: #d7e3ef;
+  --bg: #eef4fa;
   --card: #ffffff;
   --amber: #e8a33d;
-  --amber-dark: #b97a15;
+  --amber-dark: #a86f10;
 
   --s-received: #6366f1;
   --s-diagnosing: #b45309;
   --s-waiting_for_parts: #c2410c;
   --s-repairing: #2563eb;
   --s-ready: #15803d;
-  --s-delivered: #64778a;
+  --s-delivered: #7b8a99;
   --s-cancelled: #b91c1c;
 
-  --radius: 10px;
+  --radius: 8px;
 }
 
 * { box-sizing: border-box; }
@@ -24,13 +24,17 @@
 body {
   margin: 0;
   font-family: Archivo, system-ui, "Segoe UI", sans-serif;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.45;
   background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 0.92rem; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.015em; margin: 0; }
 
 a { color: var(--ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
