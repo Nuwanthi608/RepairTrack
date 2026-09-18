@@ -1,6 +1,16 @@
 const bcrypt = require("bcryptjs");
 const db = require("../config/db");
 
+// අකුරු 10ක්, capital එකක්, simple එකක්, ඉලක්කමක් අනිවාර්යයි
+function checkPassword(password) {
+  const problems = [];
+  if (password.length < 10) problems.push("at least 10 characters");
+  if (!/[A-Z]/.test(password)) problems.push("one uppercase letter");
+  if (!/[a-z]/.test(password)) problems.push("one lowercase letter");
+  if (!/[0-9]/.test(password)) problems.push("one number");
+  return problems;
+}
+
 async function main() {
   const [, , name, email, password] = process.argv;
 
@@ -8,8 +18,10 @@ async function main() {
     console.log('Usage: node scripts/createUser.js "Shop Owner" owner@example.com YourPassword');
     process.exit(1);
   }
-  if (password.length < 8) {
-    console.log("Password must be at least 8 characters");
+
+  const problems = checkPassword(password);
+  if (problems.length) {
+    console.log("Password must have " + problems.join(", ") + ".");
     process.exit(1);
   }
 
