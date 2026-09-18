@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, STATUS_LABELS, formatDate } from "../api";
+import { api, STATUS_LABELS } from "../api";
 
-// Dashboard එකේ උඩ පෙන්නන tabs (delivered/cancelled වලට tab එකක් නැහැ)
 const TABS = ["received", "diagnosing", "waiting_for_parts", "repairing", "ready"];
+const DAY = 24 * 60 * 60 * 1000;
+
+const daysSince = (date) => Math.floor((Date.now() - new Date(date)) / DAY);
 
 export default function JobsList() {
   const [jobs, setJobs] = useState([]);
@@ -23,8 +25,6 @@ export default function JobsList() {
     acc[j.status] = (acc[j.status] || 0) + 1;
     return acc;
   }, {});
-
-  // කඩේ දැන් අතේ තියෙන උපකරණ ගණන
   const inShop = TABS.reduce((sum, s) => sum + (counts[s] || 0), 0);
 
   const q = search.trim().toLowerCase();
@@ -40,34 +40,36 @@ export default function JobsList() {
 
   return (
     <div>
-      <div className="title-row">
-        <h1>Jobs</h1>
-        <span className="muted">{inShop} device{inShop === 1 ? "" : "s"} in shop</span>
+      <div className="bench">
+        <span className="bench-count">{inShop}</span>
+        <span className="bench-label">
+          <b>{inShop === 1 ? "device" : "devices"} on the bench</b>
+          {jobs.length - inShop > 0 && `${jobs.length - inShop} closed`}
+        </span>
       </div>
 
-      <div className="status-cards">
+      <div className="filters">
         <button
-          className={`status-card ${status === "" ? "active" : ""}`}
+          className={`chip ${status === "" ? "active" : ""}`}
           onClick={() => setStatus("")}
         >
-          <b>{jobs.length}</b>
-          <span>All</span>
+          <span className="n">{jobs.length}</span> All
         </button>
         {TABS.map((s) => (
           <button
             key={s}
-            className={`status-card ${status === s ? "active" : ""}`}
+            className={`chip ${s} ${status === s ? "active" : ""} ${counts[s] ? "" : "zero"}`}
             onClick={() => setStatus(status === s ? "" : s)}
           >
-            <b>{counts[s] || 0}</b>
-            <span>{STATUS_LABELS[s]}</span>
+            <span className={`dot s-${s}`} />
+            <span className="n">{counts[s] || 0}</span> {STATUS_LABELS[s]}
           </button>
         ))}
       </div>
 
       <div className="toolbar">
         <input
-          placeholder="Search job no, name or phone"
+          placeholder="Search job number, name or phone"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -80,35 +82,60 @@ export default function JobsList() {
       </div>
 
       {error && <p className="error">{error}</p>}
+
       {loading ? (
-        <p>Loading...</p>
+        <p className="muted">Loading jobs…</p>
       ) : filtered.length === 0 ? (
-        <p className="muted">No jobs found.</p>
+        <p className="empty">
+          {jobs.length === 0
+            ? "No devices yet. Use + New Job when a customer drops one off."
+            : "No jobs match this filter."}
+        </p>
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Job No</th>
-                <th>Customer</th>
-                <th>Device</th>
-                <th>Status</th>
-                <th>Received</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((j) => (
-                <tr key={j.id}>
-                  <td><Link to={`/jobs/${j.id}`}>{j.job_number}</Link></td>
-                  <td>{j.customer_name}<br /><span className="muted">{j.phone}</span></td>
-                  <td>{[j.brand, j.model].filter(Boolean).join(" ") || j.device_type}</td>
-                  <td><span className={`badge ${j.status}`}>{STATUS_LABELS[j.status]}</span></td>
-                  <td>{formatDate(j.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="job-head">
+            <span />
+            <span>Job number</span>
+            <span>Customer</span>
+            <span className="job-device">Device</span>
+            <span>Status</span>
+            <span className="age">In shop</span>
+          </div>
+
+          <div className="board">
+            {filtered.map((j) => {
+              const days = daysSince(j.created_at);
+              const open = !["delivered", "cancelled"].includes(j.status);
+              const late =
+                open && j.expected_date && new Date(j.expected_date) < new Date();
+
+              return (
+                <Link key={j.id} to={`/jobs/${j.id}`} className="job-row">
+                  <span className={`spine s-${j.status}`} />
+                  <span className="job-no">{j.job_number}</span>
+                  <span>
+                    {j.customer_name}
+                    <br />
+                    <span className="job-sub">{j.phone}</span>
+                  </span>
+                  <span className="job-device">
+                    {[j.brand, j.model].filter(Boolean).join(" ") || j.device_type}
+                    <br />
+                    <span className="job-sub">{j.device_type}</span>
+                  </span>
+                  <span>
+                    <span className={`badge ${j.status}`}>{STATUS_LABELS[j.status]}</span>
+                  </span>
+                  <span className={`age ${late ? "late" : ""}`}>
+                    {days === 0 ? "today" : `${days}d`}
+                    {late && <br />}
+                    {late && <span className="job-sub">overdue</span>}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
