@@ -5,6 +5,10 @@ import { api, STATUS_LABELS, formatRs, formatDate } from "../api";
 const LOCKED = ["delivered", "cancelled"];
 const emptyPart = { part_name: "", quantity: 1, unit_cost: "" };
 const PUBLIC_URL = window.location.origin;
+const emptyEdit = {
+  device_type: "phone", brand: "", model: "", serial_imei: "",
+  fault_description: "", accessories: "", expected_date: "",
+};
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -16,7 +20,8 @@ export default function JobDetails() {
   const [note, setNote] = useState("");
   const [part, setPart] = useState(emptyPart);
   const [payment, setPayment] = useState({ labour_cost: "", advance_paid: "" });
-
+    const [editing, setEditing] = useState(false);
+  const [edit, setEdit] = useState(emptyEdit);
   const load = useCallback(() => {
     api(`/jobs/${id}`)
       .then((data) => {
@@ -46,13 +51,26 @@ export default function JobDetails() {
     }
   };
 
-  const changeStatus = (e) => {
+    const changeStatus = (e) => {
     e.preventDefault();
     if (newStatus === job.status && !note) return;
+
+    let collectBalance = false;
+    const balance = Number(job.totals.balance);
+
+    // Delivered කරද්දී balance එකක් තියෙනවා නම් අහනවා
+    if (newStatus === "delivered" && balance > 0) {
+      collectBalance = window.confirm(
+        `Balance to collect: ${formatRs(balance)}\n\n` +
+        `OK — the customer paid it now, mark the job as fully paid.\n` +
+        `Cancel — hand over the device with the balance still owed.`
+      );
+    }
+
     run(async () => {
       await api(`/jobs/${id}/status`, {
         method: "PATCH",
-        body: { status: newStatus, note },
+        body: { status: newStatus, note, collect_balance: collectBalance },
       });
       setNote("");
     });
@@ -91,6 +109,27 @@ export default function JobDetails() {
     );
   };
 
+    const startEdit = () => {
+    setEdit({
+      device_type: job.device_type,
+      brand: job.brand || "",
+      model: job.model || "",
+      serial_imei: job.serial_imei || "",
+      fault_description: job.fault_description,
+      accessories: job.accessories || "",
+      expected_date: job.expected_date ? job.expected_date.slice(0, 10) : "",
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = (e) => {
+    e.preventDefault();
+    run(async () => {
+      await api(`/jobs/${id}`, { method: "PATCH", body: edit });
+      setEditing(false);
+    });
+  };
+
   if (error && !job) return <p className="error">{error}</p>;
   if (!job) return <p>Loading...</p>;
 
@@ -113,20 +152,96 @@ export default function JobDetails() {
       {error && <p className="error">{error}</p>}
 
       <div className="two-col">
-        <div className="card">
+                <div className="card">
           <h3>Customer</h3>
           <p><b>{job.customer_name}</b><br />{job.phone}</p>
-          <h3>Device</h3>
-          <p>
-            {job.device_type} · {[job.brand, job.model].filter(Boolean).join(" ") || "-"}<br />
-            <span className="muted">Serial/IMEI: {job.serial_imei || "-"}</span>
-          </p>
-          <p><b>Fault:</b> {job.fault_description}</p>
-          <p><b>Accessories:</b> {job.accessories || "-"}</p>
-          <p className="muted">
-            Received: {formatDate(job.created_at)}<br />
-            Expected: {job.expected_date ? new Date(job.expected_date).toLocaleDateString("en-LK") : "-"}
-          </p>
+
+          {editing ? (
+            <>
+              <h3>Edit device details</h3>
+              <form onSubmit={saveEdit} className="form">
+                <div className="grid">
+                  <label>Type
+                    <select
+                      value={edit.device_type}
+                      onChange={(e) => setEdit({ ...edit, device_type: e.target.value })}
+                    >
+                      <option value="phone">Phone</option>
+                      <option value="laptop">Laptop</option>
+                      <option value="tablet">Tablet</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label>Brand
+                    <input value={edit.brand} onChange={(e) => setEdit({ ...edit, brand: e.target.value })} />
+                  </label>
+                  <label>Model
+                    <input value={edit.model} onChange={(e) => setEdit({ ...edit, model: e.target.value })} />
+                  </label>
+                  <label>Serial / IMEI
+                    <input value={edit.serial_imei} onChange={(e) => setEdit({ ...edit, serial_imei: e.target.value })} />
+                  </label>
+                </div>
+                <label>Fault description
+                  <textarea
+                    rows="3"
+                    value={edit.fault_description}
+                    onChange={(e) => setEdit({ ...edit, fault_description: e.target.value })}
+                    required
+                  />
+                </label>
+                <label>Accessories received
+                  <input value={edit.accessories} onChange={(e) => setEdit({ ...edit, accessories: e.target.value })} />
+                </label>
+                <label>Expected date
+                  <input
+                    type="date"
+                    value={edit.expected_date}
+                    onChange={(e) => setEdit({ ...edit, expected_date: e.target.value })}
+                  />
+                </label>
+                <div className="edit-actions">
+                  <button className="btn" disabled={saving}>
+                    {saving ? "Saving…" : "Save changes"}
+                  </button>
+
+                              {newStatus === "delivered" && Number(job.totals.balance) > 0 && (
+              <p className="balance-warn">
+                Balance of {formatRs(job.totals.balance)} is still unpaid.
+                You'll be asked whether the customer paid it.
+              </p>
+            )}
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => setEditing(false)}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <h3>Device</h3>
+              <p>
+                {job.device_type} · {[job.brand, job.model].filter(Boolean).join(" ") || "-"}<br />
+                <span className="muted">Serial/IMEI: {job.serial_imei || "-"}</span>
+              </p>
+              <p><b>Fault:</b> {job.fault_description}</p>
+              <p><b>Accessories:</b> {job.accessories || "-"}</p>
+              <p className="muted">
+                Received: {formatDate(job.created_at)}<br />
+                Expected: {job.expected_date ? new Date(job.expected_date).toLocaleDateString("en-LK") : "-"}
+              </p>
+              {!locked && (
+                <button className="btn secondary" onClick={startEdit}>
+                  Edit device details
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         <div className="card">
@@ -268,6 +383,23 @@ export default function JobDetails() {
       </div>
 
       <div className="card">
+      {job.other_jobs?.length > 0 && (
+        <div className="card">
+          <h3>Other repairs for this customer ({job.other_jobs.length})</h3>
+          <div className="board">
+            {job.other_jobs.map((o) => (
+              <Link key={o.id} to={`/jobs/${o.id}`} className="history-row">
+                <span className={`spine s-${o.status}`} />
+                <span className="job-no">{o.job_number}</span>
+                <span>{[o.brand, o.model].filter(Boolean).join(" ") || o.device_type}</span>
+                <span><span className={`badge ${o.status}`}>{STATUS_LABELS[o.status]}</span></span>
+                <span className="muted">{formatDate(o.created_at)}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
         <h3>History</h3>
         <ul className="timeline">
           {job.history.map((h, i) => (

@@ -156,7 +156,15 @@ exports.getJobById = async (req, res) => {
        ORDER BY sent_at DESC, id DESC`,
       [id]
     );
-
+        // මේ customer ගේ අනිත් repairs
+    const [otherJobs] = await db.query(
+      `SELECT id, job_number, device_type, brand, model, status, created_at
+       FROM jobs
+       WHERE customer_id = ? AND id <> ?
+       ORDER BY created_at DESC
+       LIMIT 10`,
+      [jobs[0].customer_id, id]
+    );
     const job = jobs[0];
     // MySQL DECIMAL අගයන් string විදියට එන නිසා Number() කරනවා
     const partsTotal = parts.reduce((sum, p) => sum + Number(p.line_total), 0);
@@ -169,6 +177,7 @@ exports.getJobById = async (req, res) => {
       parts,
       history,
       sms,
+            other_jobs: otherJobs,
       totals: {
         parts: round2(partsTotal),
         labour: round2(labour),
@@ -176,6 +185,7 @@ exports.getJobById = async (req, res) => {
         advance_paid: round2(advance),
         balance: round2(total - advance),
       },
+    
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -203,7 +213,20 @@ exports.updateStatus = async (req, res) => {
       return res.status(404).json({ message: "Job not found" });
     }
     const statusChanged = current[0].status !== status;
-
+    
+    // Delivered කරද්දී balance එක එකතු කරගත්තා නම්, advance එක total එකට උස්සනවා
+    if (status === "delivered" && req.body.collect_balance) {
+      await conn.query(
+        `UPDATE jobs j
+         LEFT JOIN (
+           SELECT job_id, SUM(quantity * unit_cost) AS parts_total
+           FROM job_parts GROUP BY job_id
+         ) p ON p.job_id = j.id
+         SET j.advance_paid = j.labour_cost + COALESCE(p.parts_total, 0)
+         WHERE j.id = ?`,
+        [id]
+      );
+    }
     await conn.query(
       `UPDATE jobs
        SET status = ?,
@@ -230,5 +253,82 @@ exports.updateStatus = async (req, res) => {
     res.status(500).json({ message: err.message });
   } finally {
     conn.release();
+  }
+};
+
+
+// GET /api/jobs/stats/today
+exports.getTodayStats = async (req, res) => {
+  try {
+    const [[received]] = await db.query(
+      "SELECT COUNT(*) AS n FROM jobs WHERE DATE(created_at) = CURDATE()"
+    );
+
+    const [[delivered]] = await db.query(
+      "SELECT COUNT(*) AS n FROM jobs WHERE DATE(delivered_at) = CURDATE()"
+    );
+
+    // අද දුන්න jobs වල මුළු වටිනාකම (parts + labour)
+    const [[collected]] = await db.query(
+      `SELECT COALESCE(SUM(j.labour_cost + COALESCE(p.parts_total, 0)), 0) AS total
+       FROM jobs j
+       LEFT JOIN (
+         SELECT job_id, SUM(quantity * unit_cost) AS parts_total
+         FROM job_parts GROUP BY job_id
+       ) p ON p.job_id = j.id
+       WHERE DATE(j.delivered_at) = CURDATE()`
+    );
+
+    res.json({
+      received_today: received.n,
+      delivered_today: delivered.n,
+      collected_today: Number(collected.total),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// PATCH /api/jobs/:id
+exports.updateJob = async (req, res) => {
+  const { id } = req.params;
+  const {
+    device_type, brand, model, serial_imei,
+    fault_description, accessories, expected_date,
+  } = req.body;
+
+  if (!device_type || !fault_description) {
+    return res.status(400).json({
+      message: "device_type and fault_description are required",
+    });
+  }
+  if (!DEVICE_TYPES.includes(device_type)) {
+    return res.status(400).json({ message: "Invalid device_type" });
+  }
+
+  try {
+    const [rows] = await db.query("SELECT status FROM jobs WHERE id = ?", [id]);
+    if (!rows.length) return res.status(404).json({ message: "Job not found" });
+    if (["delivered", "cancelled"].includes(rows[0].status)) {
+      return res.status(400).json({
+        message: "Cannot edit a delivered or cancelled job",
+      });
+    }
+
+    await db.query(
+      `UPDATE jobs
+       SET device_type = ?, brand = ?, model = ?, serial_imei = ?,
+           fault_description = ?, accessories = ?, expected_date = ?
+       WHERE id = ?`,
+      [
+        device_type, brand || null, model || null, serial_imei || null,
+        fault_description, accessories || null, expected_date || null, id,
+      ]
+    );
+
+    res.json({ message: "Job updated" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

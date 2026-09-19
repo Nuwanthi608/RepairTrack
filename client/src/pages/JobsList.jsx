@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, STATUS_LABELS } from "../api";
+import { api, STATUS_LABELS, formatRs } from "../api";
 
 const TABS = ["received", "diagnosing", "waiting_for_parts", "repairing", "ready"];
 const DAY = 24 * 60 * 60 * 1000;
@@ -9,6 +9,7 @@ const daysSince = (date) => Math.floor((Date.now() - new Date(date)) / DAY);
 
 export default function JobsList() {
   const [jobs, setJobs] = useState([]);
+  const [today, setToday] = useState(null);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -19,6 +20,10 @@ export default function JobsList() {
       .then((data) => { setJobs(data); setError(""); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+
+    api("/jobs/stats/today")
+      .then(setToday)
+      .catch(() => {});
   }, []);
 
   const counts = jobs.reduce((acc, j) => {
@@ -43,9 +48,28 @@ export default function JobsList() {
       <div className="bench">
         <span className="bench-count">{inShop}</span>
         <span className="bench-label">
-          <b>{inShop === 1 ? "device" : "devices"} on the bench</b>
-          {jobs.length - inShop > 0 && `${jobs.length - inShop} closed`}
+          {inShop === 1 ? "device" : "devices"} on the bench
+          {jobs.length - inShop > 0 && (
+            <span> · {jobs.length - inShop} closed</span>
+          )}
         </span>
+
+        {today && (
+          <div className="today-stats">
+            <div>
+              <b>{today.received_today}</b>
+              <span>Taken in today</span>
+            </div>
+            <div>
+              <b>{today.delivered_today}</b>
+              <span>Handed over today</span>
+            </div>
+            <div>
+              <b>{formatRs(today.collected_today)}</b>
+              <span>Billed today</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="filters">
